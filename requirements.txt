@@ -3,3 +3,4 @@ dataClay>=4.0
 Pillow
 torch
 torchvision
+paho-mqtt

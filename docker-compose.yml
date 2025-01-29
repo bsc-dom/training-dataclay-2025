@@ -7,7 +7,7 @@ services:
       - 6379:6379
 
   metadata-service:
-    image: "ghcr.io/bsc-dom/dataclay:latest"
+    image: "ghcr.io/bsc-dom/dataclay:dev"
     depends_on:
       - redis
     ports:
@@ -24,7 +24,7 @@ services:
     command: python -m dataclay.metadata
 
   backend:
-    image: "ghcr.io/bsc-dom/dataclay:latest"
+    image: "ghcr.io/bsc-dom/dataclay:dev"
     depends_on:
       - redis
     ports:
@@ -38,15 +38,45 @@ services:
       - DATACLAY_LOGLEVEL=DEBUG
       - VIRTUAL_ENV=/workdir/venv-td2025
       - PYTHONPATH=/workdir/venv-td2025/lib/python3.10/site-packages:$PYTHONPATH
+      - MQTT_HOST=mqtt5
+      - MQTT_PORT=1883
+      - MQTT_PRODUCER_ID=client1
     command: python -m dataclay.backend
     volumes:
       #- ./model:/workdir/model:ro
       - ./venv-td2025:/workdir/venv-td2025
       - ./wordcount/wordcountModel:/workdir/wordcountModel:ro
       - ./digits/digitsModel:/workdir/digitsModel:ro
+      - ./broker/brokerModel:/workdir/brokerModel:ro
+
+  backend2:
+    image: "ghcr.io/bsc-dom/dataclay:dev"
+    depends_on:
+      - redis
+    ports:
+      - 6868:6868
+    environment:
+      - DATACLAY_KV_HOST=redis
+      - DATACLAY_KV_PORT=6379
+      - DATACLAY_BACKEND_ID
+      - DATACLAY_BACKEND_NAME
+      - DATACLAY_BACKEND_PORT=6868
+      - DATACLAY_LOGLEVEL=DEBUG
+      - VIRTUAL_ENV=/workdir/venv-td2025
+      - PYTHONPATH=/workdir/venv-td2025/lib/python3.10/site-packages:$PYTHONPATH
+      - MQTT_HOST=mqtt5
+      - MQTT_PORT=1883
+      - MQTT_PRODUCER_ID=client2
+    command: python -m dataclay.backend
+    volumes:
+      #- ./model:/workdir/model:ro
+      - ./venv-td2025:/workdir/venv-td2025
+      - ./wordcount/wordcountModel:/workdir/wordcountModel:ro
+      - ./digits/digitsModel:/workdir/digitsModel:ro
+      - ./broker/brokerModel:/workdir/brokerModel:ro
 
   proxy:
-    image: "ghcr.io/bsc-dom/dataclay:latest"
+    image: "ghcr.io/bsc-dom/dataclay:dev"
     ports:
       - 8676:8676
     depends_on:
@@ -59,5 +89,16 @@ services:
       #- DATACLAY_PROXY_CONFIG_MODULE=config  # already the default
     command: python -m dataclay.proxy
     volumes:
-      - ./proxy_config.py:/workdir/proxy_config.py
-      - ./middleware.py:/workdir/middleware.py
+      - ./proxy/proxy_config.py:/workdir/proxy_config.py
+      - ./proxy/middleware.py:/workdir/middleware.py
+
+  # mqtt5 eclipse-mosquitto
+  mqtt5:
+    image: eclipse-mosquitto
+    container_name: mqtt5
+    ports:
+      - "1884:1883" #default mqtt port
+      - "9001:9001" #default mqtt port for websockets
+    volumes:
+      - ./broker/config:/mosquitto/config:rw
+    restart: unless-stopped
