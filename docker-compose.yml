@@ -1,104 +1,84 @@
-version: '3.9'
 services:
 
   redis:
     image: redis:latest
-    ports:
-      - 6379:6379
 
   metadata-service:
-    image: "ghcr.io/bsc-dom/dataclay:dev"
+    image: "ghcr.io/bsc-dom/dataclay:4.1.1"
     depends_on:
       - redis
-    ports:
-      - 16587:16587
     environment:
       - DATACLAY_KV_HOST=redis
       - DATACLAY_KV_PORT=6379
-      - DATACLAY_ID
-      - DATACLAY_PASSWORD=s3cret
-      - DATACLAY_USERNAME=testuser
-      - DATACLAY_DATASET=testdata
-      - DATACLAY_METADATA_PORT=16587
-      - DATACLAY_LOGLEVEL=DEBUG
+      - DATACLAY_ID=4ded5b02-962b-4df1-9b57-a80fe335df5c
     command: python -m dataclay.metadata
 
-  backend:
-    image: "ghcr.io/bsc-dom/dataclay:dev"
+  backend1: &backend_base
+    image: "ghcr.io/bsc-dom/dataclay:4.1.1"
     depends_on:
       - redis
-    ports:
-      - 6867:6867
-    environment:
+    environment: 
       - DATACLAY_KV_HOST=redis
       - DATACLAY_KV_PORT=6379
-      - DATACLAY_BACKEND_ID
-      - DATACLAY_BACKEND_NAME
-      - DATACLAY_BACKEND_PORT=6867
-      - DATACLAY_LOGLEVEL=DEBUG
-      - VIRTUAL_ENV=/workdir/venv-td2025
-      - PYTHONPATH=/workdir/venv-td2025/lib/python3.10/site-packages:$PYTHONPATH
-      - MQTT_HOST=mqtt5
+      - DATACLAY_BACKEND_ID=5265ec08-cfb5-4de5-ba5e-9dda3a4345cf
+      - DATACLAY_BACKEND_NAME=dcbackend1
+      - MQTT_HOST=mqtt
       - MQTT_PORT=1883
       - MQTT_PRODUCER_ID=client1
     command: python -m dataclay.backend
     volumes:
-      #- ./model:/workdir/model:ro
-      - ./venv-td2025:/workdir/venv-td2025
-      - ./wordcount/wordcountModel:/workdir/wordcountModel:ro
-      - ./digits/digitsModel:/workdir/digitsModel:ro
-      - ./broker/brokerModel:/workdir/brokerModel:ro
+      - ./wordcount/wordcount_model:/workdir/wordcount_model:ro
+      - ./digits/digits_model:/workdir/digits_model:ro
+      - ./broker/broker_model:/workdir/broker_model:ro
 
   backend2:
-    image: "ghcr.io/bsc-dom/dataclay:dev"
-    depends_on:
-      - redis
-    ports:
-      - 6868:6868
+    << : *backend_base  # inherit from the base definition
     environment:
       - DATACLAY_KV_HOST=redis
       - DATACLAY_KV_PORT=6379
-      - DATACLAY_BACKEND_ID
-      - DATACLAY_BACKEND_NAME
-      - DATACLAY_BACKEND_PORT=6868
-      - DATACLAY_LOGLEVEL=DEBUG
-      - VIRTUAL_ENV=/workdir/venv-td2025
-      - PYTHONPATH=/workdir/venv-td2025/lib/python3.10/site-packages:$PYTHONPATH
-      - MQTT_HOST=mqtt5
+      # ID and name must be unique
+      - DATACLAY_BACKEND_ID=927cae70-a3f2-4a28-9790-cdf75f161b41
+      - DATACLAY_BACKEND_NAME=dcbackend2
+      - MQTT_HOST=mqtt
       - MQTT_PORT=1883
+      # Good practice to have different producer IDs
       - MQTT_PRODUCER_ID=client2
-    command: python -m dataclay.backend
-    volumes:
-      #- ./model:/workdir/model:ro
-      - ./venv-td2025:/workdir/venv-td2025
-      - ./wordcount/wordcountModel:/workdir/wordcountModel:ro
-      - ./digits/digitsModel:/workdir/digitsModel:ro
-      - ./broker/brokerModel:/workdir/brokerModel:ro
 
   proxy:
-    image: "ghcr.io/bsc-dom/dataclay:dev"
+    image: "ghcr.io/bsc-dom/dataclay:4.1.1"
     ports:
       - 8676:8676
     depends_on:
       - metadata-service
-      - backend
+      - backend1
+      - backend2
     environment:
       - DATACLAY_PROXY_MDS_HOST=metadata-service
       - DATACLAY_KV_HOST=redis
-      - DATACLAY_LOGLEVEL=DEBUG
-      #- DATACLAY_PROXY_CONFIG_MODULE=config  # already the default
+    command: python -m dataclay.proxy
+
+  proxy_exercise:
+    image: "ghcr.io/bsc-dom/dataclay:4.1.1"
+    ports:
+      - 8677:8676
+    depends_on:
+      - metadata-service
+      - backend1
+      - backend2
+    environment:
+      - DATACLAY_PROXY_MDS_HOST=metadata-service
+      - DATACLAY_KV_HOST=redis
     command: python -m dataclay.proxy
     volumes:
       - ./proxy/proxy_config.py:/workdir/proxy_config.py
-      - ./proxy/middleware.py:/workdir/middleware.py
+      - ./proxy/middlware.py:/workdir/middleware.py
 
-  # mqtt5 eclipse-mosquitto
-  mqtt5:
+  # The following is not needed by dataClay, but is used for the `broker` exercises
+  mqtt:
     image: eclipse-mosquitto
-    container_name: mqtt5
     ports:
-      - "1884:1883" #default mqtt port
+      # Opening the ports to the host is only used for being able to access the broker from the host
+      - "1883:1883" #default mqtt port
       - "9001:9001" #default mqtt port for websockets
     volumes:
       - ./broker/config:/mosquitto/config:rw
-    restart: unless-stopped

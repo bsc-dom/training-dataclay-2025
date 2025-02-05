@@ -1,5 +1,5 @@
 jupyter
-dataClay>=4.0
+dataClay>=4.1.1
 Pillow
 torch
 torchvision

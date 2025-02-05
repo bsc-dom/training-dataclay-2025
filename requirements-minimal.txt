@@ -1,0 +1,2 @@
+jupyter
+dataClay>=4.1.1
