@@ -13,36 +13,25 @@ services:
       - DATACLAY_ID=4ded5b02-962b-4df1-9b57-a80fe335df5c
     command: python -m dataclay.metadata
 
-  backend1: &backend_base
+  backend:
     image: "ghcr.io/bsc-dom/dataclay:4.1.1"
     depends_on:
       - redis
-    environment: 
-      - DATACLAY_KV_HOST=redis
-      - DATACLAY_KV_PORT=6379
-      - DATACLAY_BACKEND_ID=5265ec08-cfb5-4de5-ba5e-9dda3a4345cf
-      - DATACLAY_BACKEND_NAME=dcbackend1
-      - MQTT_HOST=mqtt
-      - MQTT_PORT=1883
-      - MQTT_PRODUCER_ID=client1
-    command: python -m dataclay.backend
-    volumes:
-      - ./wordcount/wordcount_model:/workdir/wordcount_model:ro
-      - ./digits/digits_model:/workdir/digits_model:ro
-      - ./broker/broker_model:/workdir/broker_model:ro
-
-  backend2:
-    << : *backend_base  # inherit from the base definition
     environment:
       - DATACLAY_KV_HOST=redis
       - DATACLAY_KV_PORT=6379
-      # ID and name must be unique
-      - DATACLAY_BACKEND_ID=927cae70-a3f2-4a28-9790-cdf75f161b41
-      - DATACLAY_BACKEND_NAME=dcbackend2
+      - DATACLAY_BACKEND_ID=5265ec08-cfb5-4de5-ba5e-9dda3a4345cf
+      - DATACLAY_BACKEND_NAME=dcbackend
       - MQTT_HOST=mqtt
       - MQTT_PORT=1883
-      # Good practice to have different producer IDs
-      - MQTT_PRODUCER_ID=client2
+      - MQTT_PRODUCER_ID=dcclient
+    command: /usr/bin/sh -c "pip --cache-dir /tmp/pip-cache install -r requirements.txt ; python -m dataclay.backend"
+    volumes:
+      - ./requirements-backend.txt:/workdir/requirements.txt
+      - ./wordcount/wordcount_model:/workdir/wordcount_model:ro
+      - ./digits/digits_model:/workdir/digits_model:ro
+      - ./broker/broker_model:/workdir/broker_model:ro
+      - ./docker-pip-cache:/tmp/pip-cache
 
   proxy:
     image: "ghcr.io/bsc-dom/dataclay:4.1.1"
@@ -50,8 +39,7 @@ services:
       - 8676:8676
     depends_on:
       - metadata-service
-      - backend1
-      - backend2
+      - backend
     environment:
       - DATACLAY_PROXY_MDS_HOST=metadata-service
       - DATACLAY_KV_HOST=redis
@@ -63,15 +51,14 @@ services:
       - 8677:8676
     depends_on:
       - metadata-service
-      - backend1
-      - backend2
+      - backend
     environment:
       - DATACLAY_PROXY_MDS_HOST=metadata-service
       - DATACLAY_KV_HOST=redis
     command: python -m dataclay.proxy
     volumes:
       - ./proxy/proxy_config.py:/workdir/proxy_config.py
-      - ./proxy/middlware.py:/workdir/middleware.py
+      - ./proxy/middleware.py:/workdir/middleware.py
 
   # The following is not needed by dataClay, but is used for the `broker` exercises
   mqtt:

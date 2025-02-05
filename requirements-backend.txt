@@ -1,0 +1,5 @@
+jupyter
+Pillow
+torch
+torchvision
+paho-mqtt
