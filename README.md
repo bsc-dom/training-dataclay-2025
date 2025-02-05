@@ -33,6 +33,10 @@ $ docker compose up -d
 $ jupyter notebook
 ```
 
+Both the `docker compose up` and `pip install` commands will be slow given the chain of dependencies
+for `torch` (used in the Digits demo and exercises). Give it time. Once the files are cached,
+subsequent executions of the `docker compose up` should be much faster.
+
 ## Exercises
 
 We have 4 exercises in total:
@@ -49,11 +53,10 @@ Most of the exercises also have a model folder; do not forget to check it if nee
 ## Model change (restarting backends)
 
 When you perform changes on the model folder, you will need to restart the backend. This is necessary
-for Python to re-import properly the data model. This can be achieved by the following:
+for Python to re-import properly the new data model. This can be achieved by the following:
 
 ```bash
-$ docker compose restart backend1
-$ docker compose restart backend2
+$ docker compose restart backend
 ```
 
 ## Backend clean up
