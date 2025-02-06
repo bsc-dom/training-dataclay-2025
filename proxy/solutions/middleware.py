@@ -5,64 +5,44 @@ from dataclay.proxy import MiddlewareBase, MiddlewareException
 logger = logging.getLogger(__name__)
 
 
-class ActiveMethodWhitelist(MiddlewareBase):
-    def __init__(self, user, methods):
-        self._user = user
-        self._method_names = methods
-
+class JohnCanOnlyRead(MiddlewareBase):
     def CallActiveMethod(self, request, context):
         metadata = dict(context.invocation_metadata())
-        if metadata.get("username") != self._user:
-            # Not the user we filter
-            return
-
-        if request.method_name in self._method_names:
-            # Method in whitelist
-            return
-
-        raise MiddlewareException("Method not allowed")
+        if metadata.get("username") == "john":
+            raise MiddlewareException("John can only read, not call methods")
 
     def GetObjectAttribute(self, request, context):
-        metadata = dict(context.invocation_metadata())
-
-        if metadata.get("username") != self._user:
-            # Not the user we filter
-            return
-
-        gets = ("get", "__getattribute__", "getattr")
-        for method in gets:
-            if method in self._method_names:
-                # Method in whitelist
-                return
-
-        raise MiddlewareException("Method GetObjectAttribute not allowed")
+        # Always allowed
+        pass
 
     def SetObjectAttribute(self, request, context):
         metadata = dict(context.invocation_metadata())
-
-        if metadata.get("username") != self._user:
-            # Not the user we filter
-            return
-
-        sets = ("set", "__setattr__", "setattr")
-        for method in sets:
-            if method in self._method_names:
-                # Method in whitelist# Token has been validated
-                return
-
-        raise MiddlewareException("Method SetObjectAttribute not allowed")
+        if metadata.get("username") == "john":
+            raise MiddlewareException("John cannot set attributes")
 
     def DelObjectAttribute(self, request, context):
         metadata = dict(context.invocation_metadata())
+        if metadata.get("username") == "john":
+            raise MiddlewareException("John cannot delete attributes")
 
-        if metadata.get("username") != self._user:
-            # Not the user we filter
-            return
+class JamesCanDoAgeThings(MiddlewareBase):
+    def CallActiveMethod(self, request, context):
+        metadata = dict(context.invocation_metadata())
+        if metadata.get("username") == "james":
+            if request.method_name != "add_year":
+                raise MiddlewareException("James can only call add_year")
 
-        dels = ("delete", "__delattr__", "delattr")
-        for method in dels:
-            if method in self._method_names:
-                # Method in whitelist# Token has been validated
-                return
+    def GetObjectAttribute(self, request, context):
+        metadata = dict(context.invocation_metadata())
+        if metadata.get("username") == "james" and request.attribute != "age":
+            raise MiddlewareException("James can only access the `age` attribute")
 
-        raise MiddlewareException("Method DelObjectAttribute not allowed")
+    def SetObjectAttribute(self, request, context):
+        metadata = dict(context.invocation_metadata())
+        if metadata.get("username") == "james" and request.attribute != "age":
+            raise MiddlewareException("James can only access the `age` attribute")
+
+    def DelObjectAttribute(self, request, context):
+        metadata = dict(context.invocation_metadata())
+        if metadata.get("username") == "james":
+            raise MiddlewareException("James cannot delete the `age` attribute")

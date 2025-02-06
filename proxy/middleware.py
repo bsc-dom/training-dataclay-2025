@@ -5,48 +5,25 @@ from dataclay.proxy import MiddlewareBase, MiddlewareException
 logger = logging.getLogger(__name__)
 
 
-class ActiveMethodWhitelist(MiddlewareBase):
-    def __init__(self, user, methods):
-        self._user = user
-        self._method_names = methods
-
+class JohnCanOnlyRead(MiddlewareBase):
     def CallActiveMethod(self, request, context):
         metadata = dict(context.invocation_metadata())
-        if ...:
-            # Not the user we filter
-            return
-
-        if ...:
-            # Method in whitelist
-            return
-
-        raise MiddlewareException("Method not allowed")
+        if metadata.get("username") == "john":
+            raise MiddlewareException("John can only read, not call methods")
 
     def GetObjectAttribute(self, request, context):
-        metadata = dict(context.invocation_metadata())
-
-        if metadata.get("username") != self._user:
-            # Not the user we filter
-            return
-
-        gets = ("get", "__getattribute__", "getattr")
-        for method in gets:
-            if method in self._method_names:
-                # Method in whitelist
-                return 
-
-        raise MiddlewareException("Method GetObjectAttribute not allowed")
+        # Always allowed
+        pass
 
     def SetObjectAttribute(self, request, context):
-        ...
-        sets = ("set", "__setattr__", "setattr")
-        ...
-
-        raise MiddlewareException("Method SetObjectAttribute not allowed")
+        metadata = dict(context.invocation_metadata())
+        if metadata.get("username") == "john":
+            raise MiddlewareException("John cannot set attributes")
 
     def DelObjectAttribute(self, request, context):
-        ...
-        dels = ("delete", "__delattr__", "delattr")
-        ...
+        metadata = dict(context.invocation_metadata())
+        if metadata.get("username") == "john":
+            raise MiddlewareException("John cannot delete attributes")
 
-        raise MiddlewareException("Method DelObjectAttribute not allowed")
+class JamesCanDoAgeThings(MiddlewareBase):
+    ...

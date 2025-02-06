@@ -1,11 +1,11 @@
-from middleware import ActiveMethodWhitelist
+from middleware import JamesCanDoAgeThings, JohnCanOnlyRead
 
 # No interceptors used
 interceptors = []
 
 middleware_backend = [
-    ActiveMethodWhitelist(user="username", methods=["set", "get"]),
-    ...
+    JohnCanOnlyRead(),
+    JamesCanDoAgeThings(),
 ]
 
 # Not using middleware for MetadataService
