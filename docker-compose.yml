@@ -22,9 +22,10 @@ services:
       - DATACLAY_KV_PORT=6379
       - DATACLAY_BACKEND_ID=5265ec08-cfb5-4de5-ba5e-9dda3a4345cf
       - DATACLAY_BACKEND_NAME=dcbackend
-      - MQTT_HOST=mqtt
+      - MQTT_HOST=mqtt5
       - MQTT_PORT=1883
       - MQTT_PRODUCER_ID=dcclient
+      - DATACLAY_MEMORY_CHECK_INTERVAL=86400
     command: /usr/bin/sh -c "pip --cache-dir /tmp/pip-cache install -r requirements.txt ; python -m dataclay.backend"
     volumes:
       - ./requirements-backend.txt:/workdir/requirements.txt
@@ -61,7 +62,7 @@ services:
       - ./proxy/middleware.py:/workdir/middleware.py
 
   # The following is not needed by dataClay, but is used for the `broker` exercises
-  mqtt:
+  mqtt5:
     image: eclipse-mosquitto
     ports:
       # Opening the ports to the host is only used for being able to access the broker from the host
